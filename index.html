@@ -894,9 +894,29 @@
 				}) } }),
 			});
 		} else {
+			if (window.parent === window && globalThis.vscodeAppAdapter) {
+				// The standalone adapter otherwise starts with the OS theme.
+				let theme: 'light' | 'dark' = 'light';
+				const applyTheme = () => {
+					document.documentElement.classList.remove('default-light-plus', 'default-dark-plus');
+					document.documentElement.classList.add('vscode-theme', `default-${theme}-plus`);
+					document.documentElement.style.colorScheme = theme;
+				};
+				applyTheme();
+				globalThis.vscodeAppAdapter.addToolbarItem({
+					id: 'theme',
+					order: 100,
+					label: () => theme === 'light' ? '☾ Dark' : '☀ Light',
+					title: 'Toggle light / dark theme (drag the bar to move)',
+					onClick: () => {
+						theme = theme === 'light' ? 'dark' : 'light';
+						applyTheme();
+					},
+				});
+			}
 			createRoot(rootElement).render(<App initialSession="dialog" initialSection="Settings" initialHost={agentHosts[0]} initialBrowse={false} initialSessionSectionVisible={false} />);
 		}
 	</script>
-	<script data-vscode-app-unbundled src="https://unpkg.com/@vscode/web-editors/standalone-app-adapter.js"></script>
+	<script data-vscode-app-unbundled src="https://unpkg.com/@vscode/web-editors@0.0.2-0/standalone-app-adapter.js"></script>
 </body>
 </html>
