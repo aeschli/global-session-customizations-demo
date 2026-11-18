@@ -158,7 +158,7 @@
 
 		const agents = ['Copilot', 'Claude', 'Codex'] as const;
 		type Agent = typeof agents[number];
-		type GlobalSection = 'Settings' | Agent | 'Synced' | 'Organization & Team' | 'Remotes' | 'VS Code Extensions';
+		type GlobalSection = 'Settings' | Agent | 'Synced' | 'Team & Organization' | 'Remotes' | 'VS Code Extensions';
 		type SessionSection = 'Plugins' | 'Canvases' | 'MCP Servers' | 'Skills' | 'Instructions' | 'Agents' | 'Hooks' | 'Tools';
 		type Section = GlobalSection | SessionSection;
 		interface Session { readonly id: string; readonly name: string; readonly project: string; readonly host: string; readonly agent: string; }
@@ -214,7 +214,7 @@
 			{ id: 'sessions.sendLater.enabled', label: 'Send later', description: 'Schedule requests for later. Requires Automations and a supported local agent host. Turning this off does not cancel scheduled requests.', group: 'More', kind: 'boolean', defaultValue: true },
 		];
 		const settingsGroups: readonly SettingsGroup[] = ['Window and layout', 'Sessions list', 'Navigation and workspaces', 'More'];
-		const globalSections: readonly GlobalSection[] = ['Settings', 'Remotes', 'VS Code Extensions', ...agents, 'Synced', 'Organization & Team'];
+		const globalSections: readonly GlobalSection[] = ['Settings', 'Remotes', 'VS Code Extensions', ...agents, 'Synced', 'Team & Organization'];
 		function isAgent(section: Section): section is Agent {
 			return agents.some(agent => agent === section);
 		}
@@ -242,7 +242,7 @@
 			Claude: 'Manage Claude customizations on the selected agent host.',
 			Codex: 'Manage Codex customizations on the selected agent host.',
 			Synced: 'VS Code skills, extensions, and plugins synced from this computer.',
-			'Organization & Team': 'Customizations configured by your organization and the teams you belong to.',
+			'Team & Organization': 'Customizations configured by your organization and the teams you belong to.',
 			Remotes: 'Computers available for running your sessions.',
 			'VS Code Extensions': 'Manage extensions installed in this application.',
 			Plugins: 'Bundles of skills, connections, agents and hooks.',
@@ -331,7 +331,7 @@
 		const globalItems: Record<Exclude<GlobalSection, Agent>, readonly SourceItem[]> = {
 			Settings: [],
 			Synced: syncedGroups.flatMap(group => group.items),
-			'Organization & Team': organizationGroups.flatMap(group => group.items),
+			'Team & Organization': organizationGroups.flatMap(group => group.items),
 			Remotes: agentHosts.map(host => ({ name: host.name, source: host.source, description: host.detail })),
 			'VS Code Extensions': [
 				{ name: 'GitHub Copilot', source: 'GitHub', description: 'AI assistance and agent workflows.', enabled: true },
@@ -388,7 +388,7 @@
 			return `${item.name} ${item.description} ${item.source ?? ''} ${item.type ?? ''}`.toLowerCase().includes(query.trim().toLowerCase());
 		}
 		function itemsFor(section: Section, session: Session | undefined): readonly Item[] {
-			if (section === 'Settings' || section === 'Synced' || section === 'Organization & Team' || section === 'Remotes' || section === 'VS Code Extensions') {
+			if (section === 'Settings' || section === 'Synced' || section === 'Team & Organization' || section === 'Remotes' || section === 'VS Code Extensions') {
 				return globalItems[section];
 			}
 			if (!session) { return []; }
@@ -471,7 +471,7 @@
 				const overrides = this._overrides.read(reader);
 				const section = this._section.read(reader);
 				const scope = this.itemScope(section, this._host.read(reader), this.session.read(reader));
-				const groups = section === 'Organization & Team' ? organizationGroups : syncedGroups;
+				const groups = section === 'Team & Organization' ? organizationGroups : syncedGroups;
 				return groups.map(group => ({
 					...group,
 					items: (`${group.name} ${group.searchTerms ?? ''}`.toLowerCase().includes(query)
@@ -731,7 +731,7 @@
 				onClick={() => model.selectSection(name)}>
 				<Icon kind={name === 'Settings' ? 'settings' : name === 'Remotes' ? 'computer' : name === 'Copilot' ? 'copilot' : 'item'} />
 				<span className="nav-label">{name}</span>
-				{!isAgent(name) && name !== 'Synced' && name !== 'Organization & Team' && <span className="count">{itemsFor(name, session).length || ''}</span>}
+				{!isAgent(name) && name !== 'Synced' && name !== 'Team & Organization' && <span className="count">{itemsFor(name, session).length || ''}</span>}
 			</button>;
 			return <main className="app-root" onPointerDownCapture={(event: React.PointerEvent<HTMLElement>) => {
 				if (demoMenuPosition && event.target instanceof Node
@@ -766,7 +766,7 @@
 									<h3 className="group-title">Customizations</h3>
 									{agents.map(renderNav)}
 									{renderNav('Synced')}
-									{renderNav('Organization & Team')}
+									{renderNav('Team & Organization')}
 								</div>
 							</nav>
 							{sessionSectionVisible && <section className="session-group" aria-labelledby="session-heading">
@@ -825,7 +825,7 @@
 									})}
 									</>}
 									<p className="scope-note">Example values only. Changes stay in this preview and do not modify real settings.</p>
-								</> : section === 'Synced' || section === 'Organization & Team' ? <>
+								</> : section === 'Synced' || section === 'Team & Organization' ? <>
 									<p className="muted">{section === 'Synced'
 										? 'Preview data only; this does not read your installed extensions, built-in skills, or settings.'
 										: 'Example data only; this does not read your account, organization, or team memberships.'}</p>
@@ -924,7 +924,7 @@
 					CustomizationTypes: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Copilot'), Dark: fixture('dark', 'dialog', 'Copilot') }),
 					Browse: fixture('light', 'dialog', 'Claude', agentHosts[2], true),
 					Synced: fixture('dark', 'dialog', 'Synced'),
-					OrganizationTeam: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Organization & Team'), Dark: fixture('dark', 'dialog', 'Organization & Team') }),
+					OrganizationTeam: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Team & Organization'), Dark: fixture('dark', 'dialog', 'Team & Organization') }),
 					Settings: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Settings'), Dark: fixture('dark', 'dialog', 'Settings') }),
 					NoSession: fixture('light', '', 'Plugins'),
 					Empty: fixture('light', 'remote', 'Canvases'),
