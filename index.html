@@ -762,12 +762,11 @@
 								}
 							}}>
 							<nav aria-label="Global">
-								<h2 className="group-title">Global</h2>
 								{renderNav('Settings')}
 								{renderNav('Remotes')}
 								{renderNav('VS Code Extensions')}
 								<div className="global-customizations" role="group" aria-label="Customizations">
-									<h3 className="group-title">Customizations</h3>
+									<h2 className="group-title">Customizations</h2>
 									{agents.map(renderNav)}
 									{renderNav('Built-In')}
 									{renderNav('Synced')}
