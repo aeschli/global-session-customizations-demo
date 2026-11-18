@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<!-- Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT License. -->
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="vscode-app-id" content="prototype.global-session-customizations" />
+	<title>Global and session customizations</title>
+	<style id="prototype-styles">
+		html, body { margin: 0; height: 100%; }
+		.app-root {
+			box-sizing: border-box; min-height: 100vh; padding: 24px;
+			background: var(--vscode-editor-background); color: var(--vscode-foreground);
+			font-family: var(--vscode-font-family, system-ui, sans-serif); font-size: var(--vscode-fontSize-body1, 13px);
+			font-weight: 400; line-height: 1.5;
+		}
+		.app-root * { box-sizing: border-box; }
+		.app-root button, .app-root input, .app-root select { font: inherit; }
+		.app-root button { cursor: pointer; color: inherit; }
+		.app-root button:disabled { cursor: default; opacity: .5; }
+		.app-root :is(button, input, select):focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: -2px; }
+		.app-root .preview-bar { display: flex; align-items: center; gap: 12px; margin: 0 auto 16px; max-width: 1160px; }
+		.app-root .muted { color: var(--vscode-descriptionForeground); }
+		.app-root .preview-bar .muted { flex: 1; }
+		.app-root .demo-options-trigger { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px solid transparent; border-radius: var(--vscode-cornerRadius-small, 4px); background: transparent; color: var(--vscode-descriptionForeground); white-space: nowrap; }
+		.app-root .demo-options-trigger:hover, .app-root .demo-options-trigger[aria-expanded="true"] { background: var(--vscode-toolbar-hoverBackground); color: var(--vscode-foreground); }
+		.app-root .demo-menu { position: fixed; z-index: 20; width: min(240px, calc(100vw - 16px)); padding: 4px; border: 1px solid var(--vscode-menu-border, var(--vscode-contrastBorder, transparent)); border-radius: var(--vscode-cornerRadius-large, 8px); background: var(--vscode-menu-background, var(--vscode-editorWidget-background)); color: var(--vscode-menu-foreground, var(--vscode-foreground)); box-shadow: 0 2px 8px var(--vscode-widget-shadow); }
+		.app-root .demo-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 8px; border: 1px solid transparent; border-radius: var(--vscode-cornerRadius-small, 4px); background: transparent; text-align: left; }
+		.app-root .demo-menu-item:is(:hover, :focus) { border-color: var(--vscode-menu-selectionBorder, transparent); background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground)); color: var(--vscode-menu-selectionForeground, var(--vscode-list-hoverForeground, var(--vscode-foreground))); }
+		.app-root .demo-menu-item:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+		.app-root .demo-menu-check { display: flex; width: 16px; flex: none; }
+		.app-root .quiet-button { background: transparent; border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border)); border-radius: var(--vscode-cornerRadius-small, 4px); padding: 4px 12px; }
+		.app-root .quiet-button:hover { background: var(--vscode-toolbar-hoverBackground); }
+		.app-root .window { margin: auto; max-width: 1160px; height: min(760px, calc(100vh - 100px)); min-height: 580px; display: flex; flex-direction: column; border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border)); border-radius: var(--vscode-cornerRadius-large, 8px); overflow: hidden; box-shadow: 0 8px 32px var(--vscode-widget-shadow); background: var(--vscode-editor-background); }
+		.app-root .titlebar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--vscode-panel-border); }
+		.app-root .titlebar strong { font-weight: 600; }
+		.app-root .body { display: grid; grid-template-columns: 252px minmax(0, 1fr); flex: 1; min-height: 0; }
+		.app-root .sidebar { overflow-y: auto; padding: 12px 8px; border-right: 1px solid var(--vscode-panel-border); background: var(--vscode-sideBar-background); color: var(--vscode-sideBar-foreground, var(--vscode-foreground)); }
+		.app-root .group-title { font-size: 1em; font-weight: 600; margin: 8px 8px 6px; }
+		.app-root .nav-item { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 6px 8px; border: 1px solid transparent; background: transparent; border-radius: var(--vscode-cornerRadius-small, 4px); }
+		.app-root .nav-item:hover:not([aria-current="page"]) { background: var(--vscode-list-hoverBackground); color: var(--vscode-list-hoverForeground, var(--vscode-foreground)); }
+		.app-root .nav-item[aria-current="page"] { background: var(--vscode-list-inactiveSelectionBackground); color: var(--vscode-list-inactiveSelectionForeground); }
+		.app-root .nav-label { flex: 1; }
+		.app-root .global-customizations { margin: 4px 0; }
+		.app-root .global-customizations .nav-item, .app-root .session-group .nav-item { padding-inline-start: 24px; }
+		.app-root .host-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+		.app-root .host-picker { display: grid; gap: 4px; width: min(100%, 240px); font-weight: 600; }
+		.app-root .host-picker select { font-weight: 400; }
+		.app-root button.install-button { padding: 4px 12px; border: 1px solid var(--vscode-button-border, transparent); border-radius: var(--vscode-cornerRadius-small, 4px); background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+		.app-root button.install-button:hover:not([aria-disabled="true"]) { background: var(--vscode-button-hoverBackground); }
+		.app-root button.install-button[aria-disabled="true"] { cursor: default; background: transparent; color: var(--vscode-descriptionForeground); }
+		.app-root .count { color: var(--vscode-descriptionForeground); font-size: .85em; }
+		.app-root .icon { width: 16px; height: 16px; flex: none; }
+		.app-root .session-group { margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--vscode-panel-border); }
+		.app-root .session-trigger { display: flex; align-items: center; gap: 4px; max-width: calc(100% - 16px); margin: 0 8px 8px; padding: 2px 4px; border: 0; border-radius: var(--vscode-cornerRadius-small, 4px); background: transparent; color: var(--vscode-descriptionForeground); font-size: .92em; cursor: pointer; }
+		.app-root .session-trigger:hover, .app-root .session-trigger[aria-expanded="true"] { background: var(--vscode-toolbar-hoverBackground); color: var(--vscode-foreground); }
+		.app-root .session-trigger:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+		.app-root .session-trigger-label { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+		.app-root .window { position: relative; }
+		.app-root .quick-pick-backdrop { position: absolute; inset: 0; z-index: 10; }
+		.app-root .quick-pick { position: absolute; z-index: 11; top: 40px; left: 50%; transform: translateX(-50%); width: min(520px, calc(100% - 32px)); padding: 6px; border: 1px solid var(--vscode-widget-border, var(--vscode-editorWidget-border, transparent)); border-radius: var(--vscode-cornerRadius-large, 8px); background: var(--vscode-quickInput-background, var(--vscode-editorWidget-background)); color: var(--vscode-quickInput-foreground, var(--vscode-foreground)); box-shadow: 0 0 8px 2px var(--vscode-widget-shadow); }
+		.app-root .quick-pick input { width: 100%; box-sizing: border-box; padding: 4px 6px; border: 1px solid var(--vscode-input-border, transparent); border-radius: var(--vscode-cornerRadius-small, 4px); background: var(--vscode-input-background); color: var(--vscode-input-foreground); font: inherit; outline: none; }
+		.app-root .quick-pick input:focus { border-color: var(--vscode-focusBorder); }
+		.app-root .quick-pick ul { list-style: none; margin: 6px 0 0; padding: 0; }
+		.app-root .quick-pick li { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: var(--vscode-cornerRadius-small, 4px); cursor: pointer; }
+		.app-root .quick-pick li:hover:not(.active):not(.quick-pick-empty) { background: var(--vscode-list-hoverBackground); }
+		.app-root .quick-pick li.active { background: var(--vscode-quickInputList-focusBackground, var(--vscode-list-activeSelectionBackground)); color: var(--vscode-quickInputList-focusForeground, var(--vscode-list-activeSelectionForeground)); }
+		.app-root .quick-pick-label { flex: none; }
+		.app-root .quick-pick-description { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; opacity: .75; font-size: .92em; }
+		.app-root .quick-pick-empty { color: var(--vscode-descriptionForeground); cursor: default; }
+		.app-root select { width: 100%; padding: 6px 4px; border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border)); border-radius: var(--vscode-cornerRadius-small, 4px); background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); }
+		.app-root .content { min-width: 0; overflow: auto; display: flex; flex-direction: column; }
+		.app-root .context { padding: 12px 24px; background: var(--vscode-sideBar-background); color: var(--vscode-sideBar-foreground, var(--vscode-foreground)); border-bottom: 1px solid var(--vscode-panel-border); display: flex; gap: 10px; align-items: flex-start; }
+		.app-root .context .icon { margin-top: 2px; }
+		.app-root .context strong { font-weight: 600; }
+		.app-root .context p { margin: 2px 0 0; color: var(--vscode-descriptionForeground); font-size: .92em; }
+		.app-root .page { padding: 24px; flex: 1; }
+		.app-root .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+		.app-root h1 { font-size: var(--vscode-fontSize-heading2, 18px); font-weight: 600; margin: 0 0 4px; }
+		.app-root .description { margin: 0; color: var(--vscode-descriptionForeground); }
+		.app-root input[type="search"] { width: 210px; padding: 6px 8px; border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: var(--vscode-cornerRadius-small, 4px); background: var(--vscode-input-background); color: var(--vscode-input-foreground); }
+		.app-root input::placeholder { color: var(--vscode-input-placeholderForeground); }
+		.app-root table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+		.app-root th { padding: 8px 10px; border-bottom: 1px solid var(--vscode-panel-border); border-right: 1px solid var(--vscode-panel-border); vertical-align: middle; font-weight: 600; background: var(--vscode-sideBar-background); color: var(--vscode-sideBar-foreground, var(--vscode-foreground)); }
+		.app-root th:last-child { border-right: 0; }
+		.app-root td { padding: 7px 10px; vertical-align: middle; }
+		.app-root tbody tr:nth-child(even) { background: var(--vscode-sideBar-background); }
+		.app-root tbody tr:hover { background: var(--vscode-list-hoverBackground); color: var(--vscode-list-hoverForeground, var(--vscode-foreground)); }
+		.app-root td:first-child { width: 37%; }
+		.app-root .item-action { text-align: right; white-space: nowrap; }
+		.app-root td small { display: block; color: var(--vscode-descriptionForeground); margin-top: 2px; }
+		.app-root tbody tr:hover td small { color: var(--vscode-list-hoverForeground, var(--vscode-descriptionForeground)); }
+		.app-root .agent-heading { display: flex; align-items: center; gap: 8px; }
+		.app-root .switch { display: inline-flex; align-items: center; padding: 2px; width: 30px; height: 18px; border-radius: var(--vscode-cornerRadius-circle, 9999px); border: 1px solid var(--vscode-input-border, var(--vscode-descriptionForeground)); background: var(--vscode-input-background); color: var(--vscode-input-foreground); }
+		.app-root .switch[aria-checked="true"] { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: var(--vscode-button-background); justify-content: flex-end; }
+		.app-root .switch span { width: 12px; height: 12px; border-radius: 50%; background: currentColor; }
+		.app-root .empty { text-align: center; padding: 60px 24px; color: var(--vscode-descriptionForeground); }
+		.app-root .empty h1 { color: var(--vscode-foreground); }
+		.app-root .footer { padding: 10px 24px; border-top: 1px solid var(--vscode-panel-border); color: var(--vscode-descriptionForeground); font-size: .85em; }
+		.app-root .scope-note { color: var(--vscode-descriptionForeground); font-size: .92em; margin-top: 20px; }
+		.app-root .settings-intro { margin: 0 0 16px; }
+		.app-root .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+		.app-root .setting { min-width: 0; display: flex; flex-direction: column; padding: 16px; border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border)); border-radius: var(--vscode-cornerRadius-medium, 6px); background: var(--vscode-editor-background); color: var(--vscode-foreground); }
+		.app-root .setting h2 { font-size: 1em; font-weight: 600; margin: 0; }
+		.app-root .setting-description { color: var(--vscode-descriptionForeground); margin: 4px 0 12px; min-height: 3em; }
+		.app-root .setting-preview { height: 110px; margin-top: auto; padding: 12px; overflow: hidden; border: 1px solid var(--vscode-panel-border); border-radius: var(--vscode-cornerRadius-small, 4px); background: var(--vscode-sideBar-background); color: var(--vscode-sideBar-foreground, var(--vscode-foreground)); }
+		.app-root .mini-window { height: 100%; max-width: 240px; margin: auto; overflow: hidden; border: 1px solid var(--vscode-panel-border); border-radius: var(--vscode-cornerRadius-small, 4px); background: var(--vscode-editor-background); color: var(--vscode-editor-foreground, var(--vscode-foreground)); }
+		.app-root .mini-header { padding: 4px 8px; border-bottom: 1px solid var(--vscode-panel-border); font-size: .75em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.app-root .mini-body { display: flex; height: calc(100% - 25px); padding: 6px 8px; gap: 8px; }
+		.app-root .mini-lines { flex: 1; min-width: 0; overflow: hidden; }
+		.app-root .mini-line { height: 3px; width: 88%; margin: 5px 0; border-radius: 2px; background: var(--vscode-descriptionForeground); opacity: .4; }
+		.app-root .mini-line.short { width: 52%; }
+		.app-root .mini-line.indent { width: 60%; margin-left: 12px; }
+		.app-root .mini-line.accent { background: var(--vscode-textLink-foreground); opacity: .8; }
+		.app-root .mini-divider { width: 1px; align-self: stretch; background: var(--vscode-panel-border); }
+		.app-root .mini-rail { width: 4px; flex: none; border-radius: 4px; background: var(--vscode-textLink-foreground); align-self: center; height: 24px; }
+		.app-root .mini-rail.ruler { height: 55px; background: var(--vscode-panel-border); position: relative; }
+		.app-root .mini-rail.ruler::after { content: ''; position: absolute; inset: 12px 0 auto; height: 4px; background: var(--vscode-textLink-foreground); box-shadow: 0 14px var(--vscode-textLink-foreground), 0 28px var(--vscode-textLink-foreground); }
+		.app-root .mini-draft { margin: 8px; padding: 4px 8px; border-radius: var(--vscode-cornerRadius-small, 4px); background: var(--vscode-list-inactiveSelectionBackground); color: var(--vscode-list-inactiveSelectionForeground); font-size: .75em; }
+		.app-root .mini-hint { padding: 8px; font-size: .75em; color: var(--vscode-descriptionForeground); }
+		.app-root .mini-file { font-size: .7em; line-height: 1; padding: 4px 8px; border-bottom: 1px solid var(--vscode-panel-border); }
+		.app-root .mini-file .mini-line { margin: 4px 0 0; width: 70%; }
+		.app-root .mini-layout { display: flex; gap: 4px; height: calc(100% - 25px); padding: 6px; }
+		.app-root .mini-layout[data-position="left"] { flex-direction: row-reverse; }
+		.app-root .mini-layout[data-position="top"] { flex-direction: column-reverse; }
+		.app-root .mini-layout[data-position="bottom"] { flex-direction: column; }
+		.app-root .mini-layout-editor, .app-root .mini-layout-details { padding: 4px; min-width: 0; font-size: .7em; }
+		.app-root .mini-layout-editor { flex: 2; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground, var(--vscode-foreground)); }
+		.app-root .mini-layout-details { flex: 1; background: var(--vscode-sideBar-background); color: var(--vscode-sideBar-foreground, var(--vscode-foreground)); }
+		.app-root .setting-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+		.app-root .setting-controls label { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; font-weight: 600; }
+		.app-root .setting-controls select { width: auto; min-width: 112px; max-width: 60%; }
+		.app-root .setting-controls .switch { flex: none; }
+		.app-root .setting-key { color: var(--vscode-descriptionForeground); font-size: .8em; margin-top: 8px; overflow-wrap: anywhere; }
+		.app-root .settings-group-title { font-size: 1em; margin: 28px 0 8px; font-weight: 600; }
+		.app-root .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--vscode-panel-border); }
+		.app-root .setting-row-copy { flex: 1; min-width: 0; }
+		.app-root .setting-row h3 { font-size: 1em; margin: 0; font-weight: 600; }
+		.app-root .setting-row p { margin: 4px 0; color: var(--vscode-descriptionForeground); }
+		.app-root .setting-row .setting-controls { flex: none; width: min(200px, 35%); margin: 0; }
+		.app-root .setting-row select { width: 100%; min-width: 0; max-width: none; }
+		.app-root .setting-row .setting-key { display: block; }
+		.app-root .synced-group { margin-top: 24px; }
+		.app-root .synced-group h2 { margin: 0 0 4px; font-size: 1em; font-weight: 600; }
+		.app-root .synced-group p { margin: 0 0 12px; color: var(--vscode-descriptionForeground); }
+		.app-root .synced-group :is(th, td):last-child { text-align: left; white-space: normal; overflow-wrap: anywhere; }
+	</style>
+</head>
+<body>
+	<div id="root"></div>
+	<script type="module" lang="tsx">
+		import * as React from 'https://esm.sh/react@18.3.1?target=es2022';
+		import { createRoot } from 'https://esm.sh/react-dom@18.3.1/client?target=es2022&deps=react@18.3.1';
+		import { derived, observableValue, transaction } from 'https://esm.sh/@vscode/observables@0.1.1-0?target=es2022';
+		import type { IObservable } from 'https://esm.sh/@vscode/observables@0.1.1-0?target=es2022';
+		import { prop, ViewModel, viewWithModel } from 'https://esm.sh/@vscode/observables-react@0.1.1-0?target=es2022&deps=react@18.3.1,react-dom@18.3.1,@vscode/observables@0.1.1-0';
+		import type { PropsOut } from 'https://esm.sh/@vscode/observables-react@0.1.1-0?target=es2022&deps=react@18.3.1,react-dom@18.3.1,@vscode/observables@0.1.1-0';
+
+		const agents = ['Copilot', 'Claude', 'Codex'] as const;
+		type Agent = typeof agents[number];
+		type GlobalSection = 'Settings' | Agent | 'Synced' | 'Remotes' | 'VS Code Extensions';
+		type SessionSection = 'Plugins' | 'Canvases' | 'MCP Servers' | 'Skills' | 'Instructions' | 'Agents' | 'Hooks' | 'Tools';
+		type Section = GlobalSection | SessionSection;
+		interface Session { readonly id: string; readonly name: string; readonly project: string; readonly host: string; readonly agent: string; }
+		interface DemoMenuPosition { readonly x: number; readonly y: number; readonly focusTarget?: HTMLElement; }
+		type SwitchableCustomizationType = 'Plugin' | 'MCP server';
+		type AgentCustomizationType = SwitchableCustomizationType | 'Skill' | 'Instruction' | 'Agent';
+		type CustomizationType = AgentCustomizationType | 'Canvas' | 'Hook' | 'Tool';
+		interface ItemBase { readonly name: string; readonly description: string; }
+		interface SourceItem extends ItemBase { readonly source: string; readonly type?: never; readonly enabled?: boolean; }
+		type CustomizationItem = ItemBase & { readonly source?: string } & (
+			| { readonly type: SwitchableCustomizationType; readonly enabled?: boolean }
+			| { readonly type: Exclude<CustomizationType, SwitchableCustomizationType>; readonly enabled?: never }
+		);
+		type AgentCustomizationItem = CustomizationItem & { readonly type: AgentCustomizationType };
+		type Item = SourceItem | CustomizationItem;
+		type SettingsGroup = 'Window and layout' | 'Sessions list' | 'Navigation and workspaces' | 'More';
+		interface SettingBase { readonly id: string; readonly label: string; readonly description: string; readonly group: SettingsGroup; readonly preview?: 'changes' | 'drafts' | 'timeline' | 'editor' | 'diff' | 'position'; }
+		type Setting = SettingBase & (
+			{ readonly kind: 'boolean'; readonly defaultValue: boolean }
+			| { readonly kind: 'choice'; readonly defaultValue: string; readonly options: readonly string[] }
+		);
+		const settings: readonly Setting[] = [
+			{ id: 'sessions.chatTimeline.display', label: 'Prompt timeline', description: 'Choose how to navigate prompts alongside the conversation.', group: 'Window and layout', preview: 'timeline', kind: 'choice', defaultValue: 'gutter', options: ['gutter', 'ruler', 'off'] },
+			{ id: 'sessions.changes.openSingleFileDiff', label: 'Open a single file diff', description: 'Open one file at a time instead of the multi-file changes view.', group: 'Window and layout', preview: 'changes', kind: 'boolean', defaultValue: false },
+			{ id: 'sessions.drafts.enabled', label: 'Save session drafts', description: 'Keep unsent new sessions in Drafts when you navigate away. Turning this off keeps existing drafts but hides them and stops saving new ones.', group: 'Sessions list', preview: 'drafts', kind: 'boolean', defaultValue: true },
+			{ id: 'sessions.editor.wordWrap', label: 'Editor word wrap', description: 'Choose how long lines wrap in the Agents window editor.', group: 'Window and layout', preview: 'editor', kind: 'choice', defaultValue: 'inherit', options: ['inherit', 'off', 'on'] },
+			{ id: 'sessions.diffEditor.wordWrap', label: 'Diff editor word wrap', description: 'Choose how long lines wrap when comparing changes.', group: 'Window and layout', preview: 'diff', kind: 'choice', defaultValue: 'inherit', options: ['inherit', 'off', 'on'] },
+			{ id: 'sessions.experimental.detailsPosition', label: 'Details position', description: 'Position Files, Changes, and other details inside the desktop side panel. Floating details ignore this position.', group: 'Window and layout', preview: 'position', kind: 'choice', defaultValue: 'right', options: ['right', 'left', 'top', 'bottom'] },
+			{ id: 'sessions.experimental.floatingDetails', label: 'Floating details', description: 'Show details as a floating widget instead of reserving editor space. Hover or focus to preview, and activate its control to pin it open.', group: 'Window and layout', kind: 'boolean', defaultValue: false },
+			{ id: 'sessions.experimental.layoutScope', label: 'Layout scope', description: 'Session shared: editors and panel views per session. Chat shared: editors and panel views per chat. Both share pane visibility. Chat: composition and visibility per chat. Pane sizes stay shared; reload to apply.', group: 'Window and layout', kind: 'choice', defaultValue: 'chat', options: ['session-shared', 'chat-shared', 'chat'] },
+			{ id: 'sessions.sessionActivityBar.fixedColumn', label: 'Activity bar in its own column', description: 'Show the Session Activity Bar beside the side pane instead of beside the active chat. Requires the Session Activity Bar.', group: 'Window and layout', kind: 'boolean', defaultValue: true },
+			{ id: 'sessions.sessionActivityBar.showLayoutActions', label: 'Activity bar layout actions', description: 'Show panel toggles in the Session Activity Bar instead of the title bar. Requires the Session Activity Bar.', group: 'Window and layout', kind: 'boolean', defaultValue: false },
+			{ id: 'sessions.showChatTabs', label: 'Chat tabs', description: 'Show individual chats as tabs, or show the active chat as the session view.', group: 'Window and layout', kind: 'choice', defaultValue: 'single', options: ['multiple', 'single'] },
+			{ id: 'sessions.showSessionActivityBar', label: 'Session Activity Bar', description: 'Show the activity bar for Changes, Files, Browser, and Canvas at the edge of the active chat.', group: 'Window and layout', kind: 'boolean', defaultValue: true },
+			{ id: 'sessions.getStarted.checklist', label: 'Get Started checklist', description: 'Choose where new Agents window users see the checklist in the Sessions view.', group: 'Sessions list', kind: 'choice', defaultValue: 'none', options: ['none', 'aboveSessions', 'belowSessions'] },
+			{ id: 'sessions.list.agentTools.enabled', label: 'Agent tools for the sessions list', description: 'Allow agents to read and organize the Sessions list, including groups, placement, sorting and filters.', group: 'Sessions list', kind: 'boolean', defaultValue: true },
+			{ id: 'sessions.list.externalApplicationBadge', label: 'External application badge', description: 'Choose where to show the application that created an external session.', group: 'Sessions list', kind: 'choice', defaultValue: 'title', options: ['off', 'title', 'details'] },
+			{ id: 'sessions.list.externalApplicationBadgeShowFrom', label: 'Include “From” in application badges', description: 'Include the word “From” in session application badges.', group: 'Sessions list', kind: 'boolean', defaultValue: false },
+			{ id: 'sessions.list.groupExternalSessions', label: 'Group external sessions', description: 'Show external sessions in a separate section. Pinned sessions and custom groups keep their placement.', group: 'Sessions list', kind: 'boolean', defaultValue: false },
+			{ id: 'sessions.list.inboxAutoAdvance', label: 'Advance after an Inbox reply', description: 'Move to the next visible Inbox session after replying, or focus the Inbox heading when none remain. Auto respects screen readers.', group: 'Sessions list', kind: 'choice', defaultValue: 'auto', options: ['auto', 'on', 'off'] },
+			{ id: 'sessions.list.inboxEnabled', label: 'Inbox as default grouping', description: 'Use Inbox Mode when no grouping has been chosen. Explicit grouping choices are preserved.', group: 'Sessions list', kind: 'boolean', defaultValue: false },
+			{ id: 'sessions.list.indentItems', label: 'Indent list items', description: 'Indent sessions and other rows below their section headers.', group: 'Sessions list', kind: 'boolean', defaultValue: false },
+			{ id: 'sessions.list.showArchivedByDefault', label: 'Show archived by default', description: 'Show the Done or Archived section by default until the corresponding filter is changed.', group: 'Sessions list', kind: 'boolean', defaultValue: true },
+			{ id: 'sessions.list.showAutomationSessions', label: 'Automation sessions', description: 'Choose when automation sessions appear in the sessions list. They always remain in Automations.', group: 'Sessions list', kind: 'choice', defaultValue: 'afterReply', options: ['always', 'afterReply', 'never'] },
+			{ id: 'sessions.list.showEmptyDefaultGroups', label: 'Show empty Chats group', description: 'Keep the Chats group visible even when it is empty.', group: 'Sessions list', kind: 'boolean', defaultValue: true },
+			{ id: 'sessions.list.showUnreadInCollapsedSections', label: 'Indicators in collapsed sections', description: 'Show attention, CI failure, or unread indicators for unarchived sessions in collapsed sections.', group: 'Sessions list', kind: 'boolean', defaultValue: false },
+			{ id: 'sessions.sidebar.customizationsAtBottom', label: 'Customizations below sessions', description: 'Keep Customizations below the Sessions list when separate navigation is enabled.', group: 'Navigation and workspaces', kind: 'boolean', defaultValue: false },
+			{ id: 'sessions.sidebar.customizationsCategories', label: 'Customization categories', description: 'Show all categories, or a reduced set with More and Less controls.', group: 'Navigation and workspaces', kind: 'choice', defaultValue: 'reduced', options: ['all', 'reduced'] },
+			{ id: 'sessions.sidebar.separateNavigation', label: 'Separate navigation', description: 'Show New Session, Automations, and Customizations in a separate navigation list above Sessions.', group: 'Navigation and workspaces', kind: 'boolean', defaultValue: true },
+			{ id: 'sessions.useWorktree', label: 'New worktree for new workspaces', description: 'Check New Worktree by default for a workspace that has not started a session before.', group: 'Navigation and workspaces', kind: 'boolean', defaultValue: false },
+			{ id: 'sessions.developerJoy.enabled', label: 'Developer joy', description: 'Add an easter egg to the Agents window.', group: 'More', kind: 'boolean', defaultValue: true },
+			{ id: 'sessions.markAsDoneConfetti', label: 'Celebrate completed sessions', description: 'Show confetti when marking a session as done.', group: 'More', kind: 'boolean', defaultValue: true },
+			{ id: 'sessions.sendLater.enabled', label: 'Send later', description: 'Schedule requests for later. Requires Automations and a supported local agent host. Turning this off does not cancel scheduled requests.', group: 'More', kind: 'boolean', defaultValue: true },
+		];
+		const settingsGroups: readonly SettingsGroup[] = ['Window and layout', 'Sessions list', 'Navigation and workspaces', 'More'];
+		const globalSections: readonly GlobalSection[] = ['Settings', 'Remotes', 'VS Code Extensions', ...agents, 'Synced'];
+		function isAgent(section: Section): section is Agent {
+			return agents.some(agent => agent === section);
+		}
+		const agentHosts = [
+			{ id: 'local', name: 'This Computer', source: 'Local', detail: 'Available' },
+			{ id: 'dev-server', name: 'dev-server', source: 'SSH', detail: 'Connected' },
+			{ id: 'build-box', name: 'build-box', source: 'Tunnel', detail: 'Connected' },
+		] as const;
+		type AgentHost = typeof agentHosts[number];
+		const sessionSections: readonly SessionSection[] = ['Plugins', 'Canvases', 'MCP Servers', 'Skills', 'Instructions', 'Agents', 'Hooks', 'Tools'];
+		const sessions: readonly Session[] = [
+			{ id: 'dialog', name: 'Redesign customization dialog', project: 'vscode', host: 'This Computer', agent: 'Copilot' },
+			{ id: 'remote', name: 'Fix authentication tests', project: 'web-app', host: 'dev-server', agent: 'Copilot' },
+			{ id: 'docs', name: 'Review API documentation', project: 'docs', host: 'This Computer', agent: 'Claude' },
+		];
+		function sessionLabel(session: Session): string {
+			const parts = session.host === 'This Computer'
+				? [session.agent, session.project]
+				: [session.host, session.agent, session.project];
+			return parts.join(' · ');
+		}
+		const descriptions: Record<Section, string> = {
+			Settings: 'Preferences for the Agents window. These apply across sessions.',
+			Copilot: 'Manage Copilot customizations on the selected agent host.',
+			Claude: 'Manage Claude customizations on the selected agent host.',
+			Codex: 'Manage Codex customizations on the selected agent host.',
+			Synced: 'VS Code skills, extensions, and plugins synced from this computer.',
+			Remotes: 'Computers available for running your sessions.',
+			'VS Code Extensions': 'Manage extensions installed in this application.',
+			Plugins: 'Bundles of skills, connections, agents and hooks.',
+			Canvases: 'Interactive surfaces available to this session.',
+			'MCP Servers': 'Connections that provide tools and context to this session.',
+			Skills: 'Reusable capabilities available to the selected agent.',
+			Instructions: 'Guidance discovered for the selected session.',
+			Agents: 'Specialized agents available to this session.',
+			Hooks: 'Commands that run at key points in an agent workflow.',
+			Tools: 'Tools available to the selected agent.',
+		};
+		const syncedGroups: readonly { readonly name: string; readonly description: string; readonly column: string; readonly searchTerms?: string; readonly items: readonly SourceItem[] }[] = [
+			{
+				name: 'Extensions',
+				description: 'Extensions contributing MCP servers, tools, skills, agents, or instructions.',
+				column: 'Contributes',
+				items: [
+					{ name: 'Example Workspace Assistant', source: 'Tools, skills, instructions', description: 'Example extension' },
+					{ name: 'Example Code Reviewer', source: 'Agents, skills', description: 'Example extension' },
+					{ name: 'Example Service Connector', source: 'MCP servers, tools', description: 'Example extension' },
+				],
+			},
+			{
+				name: 'Plugins',
+				description: 'Plugins listed in chat.pluginLocations.',
+				column: 'Plugin folder',
+				searchTerms: 'chat.pluginLocations',
+				items: [
+					{ name: 'Review toolkit', source: '~/.config/agent-plugins/review-toolkit', description: 'Example plugin' },
+					{ name: 'Team workflows', source: '~/agent-plugins/team-workflows', description: 'Example plugin' },
+				],
+			},
+			{
+				name: 'VS Code',
+				description: 'Built-in skills provided by VS Code.',
+				column: 'Type',
+				searchTerms: 'built-in skills',
+				items: [
+					{ name: 'act-on-feedback', source: 'Skill', description: 'Act on feedback for the current session.' },
+					{ name: 'automate', source: 'Skill', description: 'Create an automation from a task or idea.' },
+					{ name: 'commit', source: 'Skill', description: 'Commit changes with a generated message.' },
+					{ name: 'create-canvas', source: 'Skill', description: 'Create a Copilot extension canvas.' },
+					{ name: 'create-draft-pr', source: 'Skill', description: 'Create a draft pull request.' },
+					{ name: 'create-pr', source: 'Skill', description: 'Create a pull request.' },
+					{ name: 'fix-ci', source: 'Skill', description: 'Fix failed CI checks.' },
+					{ name: 'generate-run-commands', source: 'Skill', description: 'Set up run commands for the session.' },
+					{ name: 'merge', source: 'Skill', description: 'Merge changes back to the base branch.' },
+					{ name: 'migrate-customizations', source: 'Skill', description: 'Migrate agent customizations.' },
+					{ name: 'sync', source: 'Skill', description: 'Sync or publish the current branch.' },
+					{ name: 'sync-upstream', source: 'Skill', description: 'Rebase the session branch onto the latest upstream.' },
+					{ name: 'update-pr', source: 'Skill', description: 'Update the current pull request.' },
+					{ name: 'update-skills', source: 'Skill', description: 'Capture reusable learnings in skills or instructions.' },
+					{ name: 'troubleshoot', source: 'Skill', description: 'Investigate unexpected Copilot session behavior.' },
+				].map(item => ({ ...item, enabled: true })),
+			},
+		];
+		const globalItems: Record<Exclude<GlobalSection, Agent>, readonly SourceItem[]> = {
+			Settings: [],
+			Synced: syncedGroups.flatMap(group => group.items),
+			Remotes: agentHosts.map(host => ({ name: host.name, source: host.source, description: host.detail })),
+			'VS Code Extensions': [
+				{ name: 'GitHub Copilot', source: 'GitHub', description: 'AI assistance and agent workflows.', enabled: true },
+				{ name: 'Python', source: 'Microsoft', description: 'Python language support.', enabled: true },
+				{ name: 'GitHub Pull Requests', source: 'GitHub', description: 'Review and manage pull requests.', enabled: true },
+			],
+		};
+		const hostItems: Record<Agent, Record<AgentHost['id'], readonly AgentCustomizationItem[]>> = {
+			Copilot: {
+				local: [
+					{ name: 'Security & Code Quality Plugin', type: 'Plugin', description: 'Skills and an MCP server.', enabled: true },
+					{ name: 'GitHub', type: 'MCP server', description: 'Issues and pull requests.', enabled: true },
+					{ name: 'unit-tests', type: 'Skill', description: 'Run and interpret focused tests.' },
+					{ name: 'Global instructions', type: 'Instruction', description: 'Guidance for all Copilot sessions.' },
+					{ name: 'Reviewer', type: 'Agent', description: 'Review changes for correctness.' },
+				],
+				'dev-server': [{ name: 'unit-tests', type: 'Skill', description: 'Run focused tests on the development host.' }],
+				'build-box': [{ name: 'build-summary', type: 'Skill', description: 'Summarize build results.' }],
+			},
+			Claude: {
+				local: [
+					{ name: 'Project context', type: 'MCP server', description: 'Access project documentation.', enabled: true },
+					{ name: 'documentation-review', type: 'Skill', description: 'Review documentation for clarity.' },
+				],
+				'dev-server': [{ name: 'project-notes', type: 'Instruction', description: 'Shared development host conventions.' }],
+				'build-box': [],
+			},
+			Codex: {
+				local: [
+					{ name: 'Test toolkit', type: 'Plugin', description: 'Tools for planning and running tests.', enabled: true },
+					{ name: 'test-planner', type: 'Skill', description: 'Plan focused tests for a change.' },
+				],
+				'dev-server': [],
+				'build-box': [{ name: 'build-triage', type: 'Skill', description: 'Summarize failed build steps.' }],
+			},
+		};
+		const catalog: Record<Agent, readonly AgentCustomizationItem[]> = {
+			Copilot: [
+				{ name: 'Release notes', type: 'Skill', description: 'Draft a changelog from a set of changes.' },
+				{ name: 'Documentation reviewer', type: 'Agent', description: 'Review documentation for gaps and unclear language.' },
+				{ name: 'Code review toolkit', type: 'Plugin', description: 'Add a collection of review capabilities.' },
+				{ name: 'Project services', type: 'MCP server', description: 'Connect to project resources.' },
+			],
+			Claude: [
+				{ name: 'API documentation', type: 'Skill', description: 'Outline reference docs from an API surface.' },
+				{ name: 'Design review', type: 'Skill', description: 'Review a proposed interface and summarize trade-offs.' },
+			],
+			Codex: [
+				{ name: 'Refactoring checklist', type: 'Skill', description: 'Plan small, verifiable refactoring steps.' },
+				{ name: 'Test coverage review', type: 'Skill', description: 'Identify missing test cases for a change.' },
+			],
+		};
+		function matchesItem(item: Item, query: string): boolean {
+			return `${item.name} ${item.description} ${item.source ?? ''} ${item.type ?? ''}`.toLowerCase().includes(query.trim().toLowerCase());
+		}
+		function itemsFor(section: Section, session: Session | undefined): readonly Item[] {
+			if (section === 'Settings' || section === 'Synced' || section === 'Remotes' || section === 'VS Code Extensions') {
+				return globalItems[section];
+			}
+			if (!session) { return []; }
+			switch (section) {
+				case 'Plugins': return session.id === 'remote'
+					? [{ name: 'Security & Code Quality Plugin', type: 'Plugin', source: 'User', description: 'Skills and an MCP server', enabled: true }]
+					: [
+						{ name: 'Jira Sprint Dashboard', type: 'Plugin', source: 'User', description: 'A canvas for Jira sprints', enabled: true },
+						{ name: 'Security & Code Quality Plugin', type: 'Plugin', source: 'User', description: 'Skills and an MCP server', enabled: true },
+					];
+				case 'Skills': return [
+					{ name: 'code-review', type: 'Skill', source: 'Workspace', description: `Review changes in ${session.project}.` },
+					{ name: 'unit-tests', type: 'Skill', source: 'Workspace', description: 'Run focused tests and investigate failures.' },
+					{ name: 'troubleshoot', type: 'Skill', source: session.agent, description: 'Investigate unexpected session behavior.' },
+				];
+				case 'Instructions': return [
+					{ name: 'copilot-instructions.md', type: 'Instruction', source: 'Workspace', description: `Project guidance for ${session.project}.` },
+					{ name: 'coding-guidelines.instructions.md', type: 'Instruction', source: 'User', description: 'Shared coding conventions.' },
+				];
+				case 'Agents': return [
+					{ name: 'Reviewer', type: 'Agent', source: 'User', description: 'Review code changes for correctness.' },
+					{ name: 'Explore', type: 'Agent', source: session.agent, description: 'Explore the project and answer questions.' },
+				];
+				case 'MCP Servers': return [{ name: 'GitHub', type: 'MCP server', source: 'User', description: 'Issues, pull requests and repositories.', enabled: true }];
+				case 'Canvases': return session.id === 'remote' ? [] : [{ name: 'Sprint Dashboard', type: 'Canvas', source: 'Jira Sprint Dashboard', description: 'A live view of sprint work.' }];
+				case 'Hooks': return [{ name: 'Validate changes', type: 'Hook', source: 'Workspace', description: 'Run checks after edits.' }];
+				case 'Tools': return [
+					{ name: 'Read files', type: 'Tool', source: session.agent, description: 'Read project files.' },
+					{ name: 'Run commands', type: 'Tool', source: session.agent, description: 'Execute commands in the session environment.' },
+				];
+				default: return [];
+			}
+		}
+		const modelProps = {
+			initialSession: prop.const<string>(),
+			initialSection: prop.const<Section>(),
+			initialHost: prop.const<AgentHost>(),
+			initialBrowse: prop.const<boolean>(),
+			initialSessionSectionVisible: prop.const<boolean>(),
+		};
+		class PrototypeModel extends ViewModel(modelProps) {
+			private readonly _sessionId = observableValue(this, this.props.initialSession);
+			private readonly _section = observableValue<Section>(this, this.props.initialSection);
+			private readonly _query = observableValue(this, '');
+			private readonly _overrides = observableValue<ReadonlyMap<string, boolean>>(this, new Map());
+			private readonly _message = observableValue(this, '');
+			private readonly _host = observableValue<AgentHost>(this, this.props.initialHost);
+			private readonly _browsing = observableValue(this, this.props.initialBrowse);
+			private readonly _installed = observableValue<ReadonlySet<string>>(this, new Set());
+			readonly host: IObservable<AgentHost> = this._host;
+			readonly browsing: IObservable<boolean> = this._browsing;
+			readonly installed: IObservable<ReadonlySet<string>> = this._installed;
+			private readonly _settingValues = observableValue<ReadonlyMap<string, boolean | string>>(this, new Map());
+			readonly settingValues: IObservable<ReadonlyMap<string, boolean | string>> = this._settingValues;
+			private readonly _pickerOpen = observableValue(this, false);
+			private readonly _pickerQuery = observableValue(this, '');
+			private readonly _pickerActive = observableValue(this, 0);
+			private readonly _sessionSectionVisible = observableValue(this, this.props.initialSessionSectionVisible);
+			private readonly _demoMenuPosition = observableValue<DemoMenuPosition | undefined>(this, undefined);
+			readonly pickerOpen: IObservable<boolean> = this._pickerOpen;
+			readonly pickerQuery: IObservable<string> = this._pickerQuery;
+			readonly pickerActive: IObservable<number> = this._pickerActive;
+			readonly sessionSectionVisible: IObservable<boolean> = this._sessionSectionVisible;
+			readonly demoMenuPosition: IObservable<DemoMenuPosition | undefined> = this._demoMenuPosition;
+			readonly pickerItems: IObservable<readonly Session[]> = derived(this, reader => {
+				const query = this._pickerQuery.read(reader).trim().toLowerCase();
+				return sessions.filter(s => `${s.name} ${sessionLabel(s)}`.toLowerCase().includes(query));
+			});
+			readonly visibleSettings: IObservable<readonly Setting[]> = derived(this, reader => {
+				const query = this._query.read(reader).trim().toLowerCase();
+				return settings.filter(setting => `${setting.id} ${setting.label} ${setting.description}`.toLowerCase().includes(query));
+			});
+			readonly section: IObservable<Section> = this._section;
+			readonly query: IObservable<string> = this._query;
+			readonly message: IObservable<string> = this._message;
+			readonly session: IObservable<Session | undefined> = derived(this, reader => sessions.find(s => s.id === this._sessionId.read(reader)));
+			readonly isGlobal: IObservable<boolean> = derived(this, reader => globalSections.includes(this._section.read(reader) as GlobalSection));
+			readonly visibleSyncedGroups: IObservable<typeof syncedGroups> = derived(this, reader => {
+				const query = this._query.read(reader).trim().toLowerCase();
+				const overrides = this._overrides.read(reader);
+				const scope = this.itemScope('Synced', this._host.read(reader), this.session.read(reader));
+				return syncedGroups.map(group => ({
+					...group,
+					items: (`${group.name} ${group.searchTerms ?? ''}`.toLowerCase().includes(query)
+						? group.items : group.items.filter(item => matchesItem(item, query)))
+						.map(item => item.enabled === undefined ? item : { ...item, enabled: overrides.get(`${scope}/${item.name}`) ?? item.enabled }),
+				})).filter(group => group.items.length > 0);
+			});
+			readonly items: IObservable<readonly Item[]> = derived(this, reader => {
+				const query = this._query.read(reader);
+				const section = this._section.read(reader);
+				const session = this.session.read(reader);
+				const host = this._host.read(reader);
+				const scope = this.itemScope(section, host, session);
+				const overrides = this._overrides.read(reader);
+				const installed = this._installed.read(reader);
+				const candidates = isAgent(section) ? [
+					...hostItems[section][host.id],
+					...catalog[section].filter(item => installed.has(`${scope}/${item.name}`))
+						.map(item => item.type === 'Plugin' || item.type === 'MCP server' ? { ...item, enabled: true } : item),
+				] : itemsFor(section, session);
+				return candidates
+					.filter(item => matchesItem(item, query))
+					.map(item => item.enabled === undefined ? item : { ...item, enabled: overrides.get(`${scope}/${item.name}`) ?? item.enabled });
+			});
+			constructor(props: PropsOut<typeof modelProps>) { super(props); }
+			private itemScope(section: Section, host: AgentHost, session: Session | undefined): string {
+				return `${section}/${isAgent(section) ? host.id : globalSections.some(name => name === section) ? 'global' : session?.id}`;
+			}
+			selectSection(section: Section): void {
+				transaction(tx => { this._section.set(section, tx); this._browsing.set(false, tx); this._query.set('', tx); this._message.set('', tx); });
+			}
+			openDemoMenu(position: DemoMenuPosition): void {
+				transaction(tx => { this._pickerOpen.set(false, tx); this._demoMenuPosition.set(position, tx); });
+			}
+			closeDemoMenu(): void {
+				this._demoMenuPosition.set(undefined, undefined);
+			}
+			toggleSessionSection(): void {
+				const visible = !this._sessionSectionVisible.get();
+				transaction(tx => {
+					this._sessionSectionVisible.set(visible, tx);
+					this._demoMenuPosition.set(undefined, tx);
+					if (!visible && !this.isGlobal.get()) {
+						this._section.set('Settings', tx);
+						this._query.set('', tx);
+					}
+					this._message.set(`Session customization section ${visible ? 'shown' : 'hidden'} in this preview.`, tx);
+				});
+			}
+			openPicker(): void {
+				const current = sessions.findIndex(s => s.id === this._sessionId.get());
+				transaction(tx => { this._pickerQuery.set('', tx); this._pickerActive.set(Math.max(0, current), tx); this._pickerOpen.set(true, tx); });
+			}
+			closePicker(): void {
+				this._pickerOpen.set(false, undefined);
+			}
+			setPickerQuery(value: string): void {
+				transaction(tx => { this._pickerQuery.set(value, tx); this._pickerActive.set(0, tx); });
+			}
+			movePickerActive(delta: number): void {
+				const count = this.pickerItems.get().length;
+				if (count) { this._pickerActive.set((this._pickerActive.get() + delta + count) % count, undefined); }
+			}
+			acceptPicker(index = this._pickerActive.get()): void {
+				const picked = this.pickerItems.get()[index];
+				if (picked) { this.selectSession(picked.id); }
+			}
+			selectSession(id: string): void {
+				transaction(tx => {
+					this._pickerOpen.set(false, tx);
+					this._sessionId.set(id, tx);
+					this._query.set('', tx);
+					this._browsing.set(false, tx);
+					if (this.isGlobal.get()) { this._section.set('Plugins', tx); }
+					this._message.set(id ? `Showing customizations for ${sessions.find(s => s.id === id)?.name}.` : 'Select a session to see its customizations.', tx);
+				});
+			}
+			selectHost(id: string): void {
+				const host = agentHosts.find(host => host.id === id);
+				if (!host) { throw new Error(`Unknown prototype agent host: ${id}`); }
+				transaction(tx => {
+					this._host.set(host, tx);
+					this._message.set('', tx);
+				});
+			}
+			toggleBrowse(): void {
+				transaction(tx => {
+					this._browsing.set(!this._browsing.get(), tx);
+					this._query.set('', tx);
+					this._message.set('', tx);
+				});
+			}
+			installPreview(agent: Agent, host: AgentHost, item: Item): void {
+				const key = `${agent}/${host.id}/${item.name}`;
+				if (this._installed.get().has(key)) { return; }
+				transaction(tx => {
+					this._installed.set(new Set([...this._installed.get(), key]), tx);
+					this._message.set(`${item.name} added to ${agent} on ${host.name} in this preview only.`, tx);
+				});
+			}
+			setQuery(query: string): void { this._query.set(query, undefined); }
+			setSetting(setting: Setting, value: boolean | string): void {
+				const next = new Map(this._settingValues.get());
+				next.set(setting.id, value);
+				transaction(tx => {
+					this._settingValues.set(next, tx);
+					this._message.set(`${setting.label} changed to ${value} in this preview only.`, tx);
+				});
+			}
+			toggle(item: Item): void {
+				if (item.enabled === undefined) { throw new Error(`${item.name} does not support enablement.`); }
+				const scope = this.itemScope(this._section.get(), this._host.get(), this.session.get());
+				const next = new Map(this._overrides.get());
+				next.set(`${scope}/${item.name}`, !item.enabled);
+				transaction(tx => {
+					this._overrides.set(next, tx);
+					this._message.set(`${item.name} ${item.enabled ? 'disabled' : 'enabled'} in this prototype.`, tx);
+				});
+			}
+		}
+		function Icon({ kind }: { readonly kind: 'computer' | 'session' | 'item' | 'settings' | 'copilot' | 'chevron' | 'check' }): React.ReactElement {
+			return <svg className="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true">
+				{kind === 'computer' ? <path d="M2 2.5h12v8H2zM5 13.5h6M8 10.5v3" />
+					: kind === 'chevron' ? <path d="M4.5 6.5 8 10l3.5-3.5" />
+					: kind === 'check' ? <path d="m3.5 8.5 3 3 6-7" />
+					: kind === 'settings' ? <><path d="M2 4h12M2 8h12M2 12h12" /><path d="M5 2v4M11 6v4M6 10v4" strokeWidth="3" /></>
+					: kind === 'session' ? <path d="M2.5 2.5h11v8h-7l-4 3z" />
+					: kind === 'copilot' ? <><path d="M5.3 2.5a2.8 2.8 0 0 0-2.8 2.8v5.4a2.8 2.8 0 0 0 5.4 1h.2a2.8 2.8 0 0 0 5.4-1V5.3a2.8 2.8 0 0 0-5.4-1h-.2a2.8 2.8 0 0 0-2.6-1.8Z" /><path d="M5.2 6.2v.2m5.6-.2v.2M6.6 9.7c.8.6 2 .6 2.8 0" strokeWidth="1.5" /></>
+					: <path d="M3 2.5h10v11H3zM5.5 6h5M5.5 9h5" />}
+			</svg>;
+		}
+		function SettingPreview({ setting, value }: { readonly setting: Setting; readonly value: string | boolean }): React.ReactElement {
+			const lines = (wrapped: boolean) => <div className="mini-lines">
+				<div className="mini-line short" /><div className="mini-line accent" />
+				{wrapped && <div className="mini-line indent" />}<div className="mini-line" /><div className="mini-line short" />
+			</div>;
+			return <div className="setting-preview" aria-hidden="true"><div className="mini-window">
+				{setting.preview === 'timeline' ? <>
+					<div className="mini-header">Conversation</div>
+					<div className="mini-body">
+						{value === 'gutter' && <div className="mini-rail" />}
+						{lines(false)}
+						{value === 'ruler' && <div className="mini-rail ruler" />}
+					</div>
+				</> : setting.preview === 'drafts' ? <>
+					<div className="mini-header">Sessions</div>
+					{value ? <div className="mini-draft">Drafts &nbsp; · &nbsp; New session</div> : <div className="mini-hint">Unsent sessions aren't saved</div>}
+				</> : setting.preview === 'changes' ? <>
+					<div className="mini-header">{value ? 'Single file · app.ts' : 'Changes · 2 files'}</div>
+					{value ? <div className="mini-body">{lines(false)}<div className="mini-divider" />{lines(false)}</div>
+						: <><div className="mini-file">app.ts<div className="mini-line accent" /></div><div className="mini-file">styles.css<div className="mini-line accent" /></div></>}
+				</> : setting.preview === 'position' ? <>
+					<div className="mini-header">Desktop side panel</div>
+					<div className="mini-layout" data-position={String(value)}>
+						<div className="mini-layout-editor">Editor<div className="mini-line accent" /><div className="mini-line short" /></div>
+						<div className="mini-layout-details">Details</div>
+					</div>
+				</> : <>
+					<div className="mini-header">{setting.preview === 'diff' ? 'Diff editor' : 'Editor'} · {value === 'inherit' ? 'Follow editor setting' : value === 'on' ? 'Wrap on' : 'Wrap off'}</div>
+					<div className="mini-body">{lines(value === 'on')}{setting.preview === 'diff' && <><div className="mini-divider" />{lines(value === 'on')}</>}</div>
+				</>}
+			</div></div>;
+		}
+		const App = viewWithModel(PrototypeModel, (reader, model) => {
+			const section = model.section.read(reader);
+			const session = model.session.read(reader);
+			const isGlobal = model.isGlobal.read(reader);
+			const query = model.query.read(reader);
+			const host = model.host.read(reader);
+			const browseAgent = isAgent(section) && model.browsing.read(reader) ? section : undefined;
+			const installed = model.installed.read(reader);
+			const items = browseAgent ? catalog[browseAgent].filter(item => matchesItem(item, query)) : model.items.read(reader);
+			const showActionColumn = !!browseAgent || isAgent(section) || section === 'Remotes' || items.some(item => item.enabled !== undefined);
+			const visibleSyncedGroups = model.visibleSyncedGroups.read(reader);
+			const visibleSettings = model.visibleSettings.read(reader);
+			const pickerOpen = model.pickerOpen.read(reader);
+			const pickerItems = model.pickerItems.read(reader);
+			const pickerActive = model.pickerActive.read(reader);
+			const sessionSectionVisible = model.sessionSectionVisible.read(reader);
+			const demoMenuPosition = model.demoMenuPosition.read(reader);
+			const openDemoMenuFrom = (button: HTMLButtonElement) => {
+				const bounds = button.getBoundingClientRect();
+				model.openDemoMenu({ x: bounds.right - 240, y: bounds.bottom + 4, focusTarget: button });
+			};
+			const demoOptionsTrigger = (from: HTMLElement) =>
+				from.closest('.app-root')?.querySelector<HTMLButtonElement>('.demo-options-trigger') ?? undefined;
+			const closeDemoMenu = (from: HTMLElement) => {
+				const trigger = demoOptionsTrigger(from);
+				const previousFocus = demoMenuPosition?.focusTarget;
+				model.closeDemoMenu();
+				(previousFocus?.isConnected ? previousFocus : trigger)?.focus();
+			};
+			const isSidebarMenuTarget = (target: EventTarget) => !(target instanceof Element && target.closest('button'));
+			const onSidebarContextMenu = (event: React.MouseEvent<HTMLElement>) => {
+				if (!isSidebarMenuTarget(event.target)) { return; }
+				event.preventDefault();
+				const activeElement = event.currentTarget.ownerDocument.activeElement;
+				const focusTarget = activeElement instanceof HTMLElement && activeElement !== event.currentTarget.ownerDocument.body && !activeElement.closest('.demo-menu')
+					? activeElement : demoOptionsTrigger(event.currentTarget);
+				model.openDemoMenu({ x: event.clientX, y: event.clientY, focusTarget });
+			};
+			const closePicker = (from: HTMLElement) => {
+				const trigger = from.closest('.window')?.querySelector<HTMLButtonElement>('.session-trigger');
+				model.closePicker();
+				trigger?.focus();
+			};
+			const onPickerKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+				const target = event.currentTarget;
+				if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+					event.preventDefault();
+					model.movePickerActive(event.key === 'ArrowDown' ? 1 : -1);
+				} else if (event.key === 'Enter') {
+					event.preventDefault();
+					if (pickerItems.length) { closePicker(target); model.acceptPicker(); }
+				} else if (event.key === 'Escape') {
+					event.preventDefault();
+					closePicker(target);
+				}
+			};
+			const quickPick = pickerOpen && <>
+				<div className="quick-pick-backdrop" onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => closePicker(event.currentTarget)} />
+				<div className="quick-pick" role="dialog" aria-label="Select session">
+					<input type="text" autoFocus role="combobox" aria-expanded="true" aria-controls="session-quick-pick-list" aria-autocomplete="list"
+						aria-activedescendant={pickerItems[pickerActive] ? `session-option-${pickerItems[pickerActive].id}` : undefined}
+						aria-label="Select a session" placeholder="Select a session"
+						value={model.pickerQuery.read(reader)}
+						onChange={(event: React.ChangeEvent<HTMLInputElement>) => model.setPickerQuery(event.target.value)}
+						onKeyDown={onPickerKeyDown} />
+					<ul id="session-quick-pick-list" role="listbox" aria-label="Sessions">
+						{pickerItems.map((s, index) => <li key={s.id} id={`session-option-${s.id}`} role="option" aria-selected={index === pickerActive}
+							className={index === pickerActive ? 'active' : undefined}
+							onMouseDown={(event: React.MouseEvent<HTMLLIElement>) => event.preventDefault()}
+							onClick={(event: React.MouseEvent<HTMLLIElement>) => { closePicker(event.currentTarget); model.acceptPicker(index); }}>
+							<Icon kind="session" />
+							<span className="quick-pick-label">{s.name}</span>
+							<span className="quick-pick-description">{sessionLabel(s)}</span>
+							{s.id === session?.id && <Icon kind="check" />}
+						</li>)}
+						{pickerItems.length === 0 && <li className="quick-pick-empty" role="presentation">No matching sessions</li>}
+					</ul>
+				</div>
+			</>;
+			const settingValues = model.settingValues.read(reader);
+			const renderSettingControl = (setting: Setting, value: string | boolean) => setting.kind === 'boolean' ? <>
+				<span>{value === true ? 'On' : 'Off'}</span>
+				<button className="switch" role="switch" aria-label={setting.label} aria-checked={value === true}
+					onClick={() => model.setSetting(setting, value !== true)}><span /></button>
+			</> : <label>Display
+				<select aria-label={setting.label} value={String(value)}
+					onChange={(event: React.ChangeEvent<HTMLSelectElement>) => model.setSetting(setting, event.target.value)}>
+					{setting.options.map(option => <option key={option} value={option}>{option.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/-/g, ' ').replace(/^./, c => c.toUpperCase())}</option>)}
+				</select>
+			</label>;
+			const renderNav = (name: Section) => <button key={name} className="nav-item"
+				aria-current={section === name ? 'page' : undefined}
+				disabled={!globalSections.includes(name as GlobalSection) && !session}
+				onClick={() => model.selectSection(name)}>
+				<Icon kind={name === 'Settings' ? 'settings' : name === 'Remotes' ? 'computer' : name === 'Copilot' ? 'copilot' : 'item'} />
+				<span className="nav-label">{name}</span>
+				{!isAgent(name) && name !== 'Synced' && <span className="count">{itemsFor(name, session).length || ''}</span>}
+			</button>;
+			return <main className="app-root" onPointerDownCapture={(event: React.PointerEvent<HTMLElement>) => {
+				if (demoMenuPosition && event.target instanceof Node
+					&& !event.currentTarget.querySelector('.demo-menu')?.contains(event.target)
+					&& !event.currentTarget.querySelector('.demo-options-trigger')?.contains(event.target)) {
+					model.closeDemoMenu();
+				}
+			}}>
+				<div className="preview-bar"><strong>Design prototype</strong><span className="muted">Global setup, with an explicit session context.</span>
+					<button type="button" className="demo-options-trigger" aria-haspopup="menu" aria-expanded={!!demoMenuPosition}
+						onClick={(event: React.MouseEvent<HTMLButtonElement>) => demoMenuPosition ? closeDemoMenu(event.currentTarget) : openDemoMenuFrom(event.currentTarget)}
+						onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => {
+							if (event.key === 'ArrowDown') { event.preventDefault(); openDemoMenuFrom(event.currentTarget); }
+						}}>Demo Options <Icon kind="chevron" /></button>
+				</div>
+				<section className="window" aria-label="Customizations prototype">
+					<header className="titlebar"><strong>Customizations</strong><span className="muted">Interactive mockup</span></header>
+					<div className="body">
+						<aside className="sidebar" aria-label="Customization navigation" onContextMenu={onSidebarContextMenu}
+							onMouseDown={(event: React.MouseEvent<HTMLElement>) => {
+								if (event.button === 2 && isSidebarMenuTarget(event.target)) {
+									// Keep the previous focus available when the menu closes.
+									event.preventDefault();
+								}
+							}}>
+							<nav aria-label="Global">
+								<h2 className="group-title">Global</h2>
+								{renderNav('Settings')}
+								{renderNav('Remotes')}
+								{renderNav('VS Code Extensions')}
+								<div className="global-customizations" role="group" aria-label="Customizations">
+									<h3 className="group-title">Customizations</h3>
+									{agents.map(renderNav)}
+									{renderNav('Synced')}
+								</div>
+							</nav>
+							{sessionSectionVisible && <section className="session-group" aria-labelledby="session-heading">
+								<h2 className="group-title" id="session-heading">Session customization</h2>
+								<button type="button" className="session-trigger" aria-haspopup="listbox" aria-expanded={pickerOpen}
+									title={session ? session.name : undefined}
+									aria-label={session ? `Session: ${session.name}, ${sessionLabel(session)}. Change session` : 'Select a session'}
+									onClick={() => model.openPicker()}>
+									<span className="session-trigger-label">{session ? sessionLabel(session) : 'Select a session'}</span>
+									<Icon kind="chevron" />
+								</button>
+								<nav aria-label="Selected session customizations">{sessionSections.map(renderNav)}</nav>
+							</section>}
+						</aside>
+						<div className="content">
+							{!isGlobal && <div className="context"><Icon kind="session" /><div>
+								<strong>{session?.name ?? 'No session selected'}</strong>
+								<p>{session ? sessionLabel(session) : 'Choose a session in the sidebar to inspect its customizations.'}</p>
+							</div></div>}
+							<div className="page">
+								<div className="page-heading"><div><h1 className={section === 'Copilot' ? 'agent-heading' : undefined}>{section === 'Copilot' && <Icon kind="copilot" />}{browseAgent ? `Browse ${browseAgent} customizations` : section}</h1><p className="description">{browseAgent ? `Try installing a sample customization for ${browseAgent} on ${host.name}.` : descriptions[section]}</p></div>
+									{(isGlobal || session) && <input type="search" aria-label={browseAgent ? 'Search catalog' : `Search ${section}`} placeholder="Type to search..." value={query} onChange={(event: React.ChangeEvent<HTMLInputElement>) => model.setQuery(event.target.value)} />}
+								</div>
+								{isAgent(section) && <div className="host-toolbar">
+									<div className="host-picker">
+										<select aria-label="Agent host" value={host.id} onChange={(event: React.ChangeEvent<HTMLSelectElement>) => model.selectHost(event.target.value)}>
+											{agentHosts.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+										</select>
+									</div>
+									<button className="quiet-button" onClick={() => model.toggleBrowse()}>{browseAgent ? 'Back to Installed' : 'Browse'}</button>
+								</div>}
+								{section === 'Settings' ? <>
+									<p className="settings-intro muted">Explore how each choice changes your experience.</p>
+									{visibleSettings.length === 0 ? <div className="empty">No matching settings.</div> : <>
+									<div className="settings-grid">
+										{visibleSettings.filter(setting => setting.preview).map(setting => {
+											const value = settingValues.get(setting.id) ?? setting.defaultValue;
+											return <article className="setting" key={setting.id}>
+												<h2>{setting.label}</h2>
+												<p className="setting-description">{setting.description}</p>
+												<SettingPreview setting={setting} value={value} />
+												<div className="setting-controls">{renderSettingControl(setting, value)}</div>
+												<code className="setting-key">{setting.id}</code>
+											</article>;
+										})}
+									</div>
+									{settingsGroups.map(group => {
+										const groupSettings = visibleSettings.filter(setting => !setting.preview && setting.group === group);
+										return groupSettings.length > 0 && <section key={group} aria-label={group}>
+											<h2 className="settings-group-title">{group}</h2>
+											{groupSettings.map(setting => <article className="setting-row" key={setting.id}>
+												<div className="setting-row-copy"><h3>{setting.label}</h3><p>{setting.description}</p><code className="setting-key">{setting.id}</code></div>
+												<div className="setting-controls">{renderSettingControl(setting, settingValues.get(setting.id) ?? setting.defaultValue)}</div>
+											</article>)}
+										</section>;
+									})}
+									</>}
+									<p className="scope-note">Example values only. Changes stay in this preview and do not modify real settings.</p>
+								</> : section === 'Synced' ? <>
+									<p className="muted">Preview data only; this does not read your installed extensions, built-in skills, or settings.</p>
+									{visibleSyncedGroups.length === 0 ? <div className="empty">No matching sources.</div> : visibleSyncedGroups.map(group =>
+										<section className="synced-group" key={group.name} aria-label={group.name}>
+											<h2>{group.name}</h2><p>{group.description}</p>
+											<table><thead><tr><th>Name</th><th>{group.column}</th>{group.items.some(item => item.enabled !== undefined) && <th className="item-action">Enabled</th>}</tr></thead>
+												<tbody>{group.items.map(item => <tr key={item.name}><td>{item.name}<small>{item.description}</small></td><td>{item.source}</td>
+													{item.enabled !== undefined && <td className="item-action"><button className="switch" role="switch" aria-label={`${item.name}: VS Code built-in skill`} aria-checked={item.enabled} onClick={() => model.toggle(item)}><span /></button></td>}
+												</tr>)}</tbody>
+											</table>
+										</section>
+									)}
+								</> : !isGlobal && !session ? <div className="empty"><h1>Select a session</h1><p>Customizations depend on the session's project, agent and computer.</p><p>Global setup is always available above.</p></div>
+									: items.length === 0 ? <div className="empty">{query.trim() ? 'No matching customizations.'
+										: isAgent(section) ? `No ${section} customizations on ${host.name} yet. Use Browse to find something to install.`
+											: `No ${section.toLowerCase()} available for this session.`}</div>
+									: <table><thead><tr><th>Name</th><th>{isAgent(section) || !isGlobal ? 'Type' : 'Source'}</th>
+										{showActionColumn && <th className="item-action">{browseAgent ? 'Action' : section === 'Remotes' ? 'Details' : 'Enabled'}</th>}</tr></thead>
+										<tbody>{items.map(item => {
+											const isInstalled = browseAgent !== undefined && installed.has(`${browseAgent}/${host.id}/${item.name}`);
+											const isNotApplicable = !browseAgent && section !== 'Remotes' && item.enabled === undefined;
+											return <tr key={item.name}><td>{item.name}<small>{item.description}{!isGlobal && item.source ? ` · ${item.source}` : ''}</small></td><td>{item.type ?? item.source}</td>
+											{showActionColumn && <td className="item-action" aria-label={isNotApplicable ? 'Not applicable' : undefined}>{browseAgent ? (
+												<button className="install-button" aria-disabled={isInstalled} aria-label={`${isInstalled ? 'Installed' : 'Install'} ${item.name}`}
+													onClick={() => model.installPreview(browseAgent, host, item)}>{isInstalled ? 'Installed' : 'Install'}</button>
+											) : section === 'Remotes' ? <span className="muted">{item.description}</span>
+												: item.enabled === undefined ? <span className="muted" aria-hidden="true">—</span>
+												: <button className="switch" role="switch" aria-label={`${item.name}: ${isAgent(section) ? `${section} on ${host.name}` : isGlobal ? 'global' : session?.name}`} aria-checked={item.enabled} onClick={() => model.toggle(item)}><span /></button>}</td>}</tr>;
+										})}</tbody></table>}
+								{!isGlobal && session && <p className="scope-note">Showing what is available to this session. Items can come from user, workspace, plugin or built-in sources.</p>}
+							</div>
+							<footer className="footer"><span role="status">{model.message.read(reader) || 'Prototype only. Changes stay in this preview and do not modify real settings.'}</span></footer>
+						</div>
+					</div>
+					{quickPick}
+				</section>
+				{demoMenuPosition && <div className="demo-menu" role="menu" aria-label="Demo options"
+					style={{
+						left: `clamp(8px, ${demoMenuPosition.x}px, max(8px, calc(100vw - 248px)))`,
+						top: `clamp(8px, ${demoMenuPosition.y}px, max(8px, calc(100vh - 64px)))`,
+					}}
+					onBlur={(event: React.FocusEvent<HTMLDivElement>) => {
+						if (!event.currentTarget.contains(event.relatedTarget) && !event.relatedTarget?.closest('.demo-options-trigger')) {
+							model.closeDemoMenu();
+						}
+					}}
+					onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+						if (event.key === 'Escape') { event.preventDefault(); closeDemoMenu(event.currentTarget); }
+					}}>
+					<button type="button" className="demo-menu-item" role="menuitemcheckbox" aria-checked={sessionSectionVisible} autoFocus
+						onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+							const trigger = demoOptionsTrigger(event.currentTarget);
+							const previousFocus = demoMenuPosition.focusTarget;
+							const focusWillBeHidden = sessionSectionVisible && previousFocus?.closest('.session-group');
+							model.toggleSessionSection();
+							(previousFocus?.isConnected && !focusWillBeHidden ? previousFocus : trigger)?.focus();
+						}}>
+						<span className="demo-menu-check" aria-hidden="true">{sessionSectionVisible && <Icon kind="check" />}</span>
+						Session Customization
+					</button>
+				</div>}
+			</main>;
+		});
+		const rootElement = document.getElementById('root');
+		if (!rootElement) { throw new Error('Missing app root'); }
+		if (globalThis.VSCODE_APP_ENV !== 'prod' && globalThis.vscodeAppAdapter?.enableComponentExplorer()) {
+			const { defineFixture, defineFixtureGroup, defineFixtureVariants } = await import('https://esm.sh/@vscode/component-explorer@0.2.1-100?target=es2022');
+			const { ExplorerApp } = await import('https://esm.sh/@vscode/component-explorer@0.2.1-100/viewer?target=es2022');
+			const styles = document.getElementById('prototype-styles')?.textContent ?? '';
+			function fixture(theme: 'dark' | 'light', session: string, section: Section, agentHost: AgentHost = agentHosts[0], browse = false, sessionSectionVisible = true) {
+				return defineFixture({
+					render: container => {
+						const host = document.createElement('div');
+						host.className = `vscode-theme default-${theme}-plus`;
+						host.style.width = '1220px';
+						host.style.height = '880px';
+						const style = document.createElement('style');
+						style.textContent = styles;
+						host.append(style);
+						const target = document.createElement('div');
+						host.append(target);
+						container.append(host);
+						const root = createRoot(target);
+						root.render(<App initialSession={session} initialSection={section} initialHost={agentHost} initialBrowse={browse} initialSessionSectionVisible={sessionSectionVisible} />);
+						return { dispose: () => { root.unmount(); host.remove(); } };
+					},
+				});
+			}
+			new ExplorerApp(rootElement, {
+				loadFixtures: async () => ({ 'fixtures/Customizations.fixture.tsx': { default: defineFixtureGroup({
+					Initial: fixture('light', 'dialog', 'Settings', agentHosts[0], false, false),
+					Session: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Plugins'), Dark: fixture('dark', 'dialog', 'Plugins') }),
+					Global: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Remotes'), Dark: fixture('dark', 'dialog', 'Remotes') }),
+					AgentHost: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Copilot', agentHosts[1]), Dark: fixture('dark', 'dialog', 'Copilot', agentHosts[1]) }),
+					CustomizationTypes: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Copilot'), Dark: fixture('dark', 'dialog', 'Copilot') }),
+					Browse: fixture('light', 'dialog', 'Claude', agentHosts[2], true),
+					Synced: fixture('dark', 'dialog', 'Synced'),
+					Settings: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Settings'), Dark: fixture('dark', 'dialog', 'Settings') }),
+					NoSession: fixture('light', '', 'Plugins'),
+					Empty: fixture('light', 'remote', 'Canvases'),
+				}) } }),
+			});
+		} else {
+			createRoot(rootElement).render(<App initialSession="dialog" initialSection="Settings" initialHost={agentHosts[0]} initialBrowse={false} initialSessionSectionVisible={false} />);
+		}
+	</script>
+	<script data-vscode-app-unbundled src="https://unpkg.com/@vscode/web-editors/standalone-app-adapter.js"></script>
+</body>
+</html>
