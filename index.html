@@ -790,7 +790,7 @@
 								<p>{session ? sessionLabel(session) : 'Choose a session in the sidebar to inspect its customizations.'}</p>
 							</div></div>}
 							<div className="page">
-								<div className="page-heading"><div><h1>{browseAgent ? `Browse ${browseAgent} customizations` : section}</h1><p className="description">{browseAgent ? `Try installing a sample customization for ${browseAgent} on ${host.name}.` : descriptions[section]}</p></div>
+								<div className="page-heading"><div><h1>{browseAgent ? `Browse ${browseAgent} customizations` : isAgent(section) ? `${section} Customizations` : section}</h1><p className="description">{browseAgent ? `Try installing a sample customization for ${browseAgent} on ${host.name}.` : descriptions[section]}</p></div>
 									{(isGlobal || session) && <input type="search" aria-label={browseAgent ? 'Search catalog' : `Search ${section}`} placeholder="Type to search..." value={query} onChange={(event: React.ChangeEvent<HTMLInputElement>) => model.setQuery(event.target.value)} />}
 								</div>
 								{isAgent(section) && <div className="host-toolbar">
