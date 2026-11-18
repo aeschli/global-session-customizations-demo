@@ -90,7 +90,6 @@
 		.app-root .item-action { text-align: right; white-space: nowrap; }
 		.app-root td small { display: block; color: var(--vscode-descriptionForeground); margin-top: 2px; }
 		.app-root tbody tr:hover td small { color: var(--vscode-list-hoverForeground, var(--vscode-descriptionForeground)); }
-		.app-root .agent-heading { display: flex; align-items: center; gap: 8px; }
 		.app-root .switch { display: inline-flex; align-items: center; padding: 2px; width: 30px; height: 18px; border-radius: var(--vscode-cornerRadius-circle, 9999px); border: 1px solid var(--vscode-input-border, var(--vscode-descriptionForeground)); background: var(--vscode-input-background); color: var(--vscode-input-foreground); }
 		.app-root .switch[aria-checked="true"] { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: var(--vscode-button-background); justify-content: flex-end; }
 		.app-root .switch span { width: 12px; height: 12px; border-radius: 50%; background: currentColor; }
@@ -791,7 +790,7 @@
 								<p>{session ? sessionLabel(session) : 'Choose a session in the sidebar to inspect its customizations.'}</p>
 							</div></div>}
 							<div className="page">
-								<div className="page-heading"><div><h1 className={section === 'Copilot' ? 'agent-heading' : undefined}>{section === 'Copilot' && <Icon kind="copilot" />}{browseAgent ? `Browse ${browseAgent} customizations` : section}</h1><p className="description">{browseAgent ? `Try installing a sample customization for ${browseAgent} on ${host.name}.` : descriptions[section]}</p></div>
+								<div className="page-heading"><div><h1>{browseAgent ? `Browse ${browseAgent} customizations` : section}</h1><p className="description">{browseAgent ? `Try installing a sample customization for ${browseAgent} on ${host.name}.` : descriptions[section]}</p></div>
 									{(isGlobal || session) && <input type="search" aria-label={browseAgent ? 'Search catalog' : `Search ${section}`} placeholder="Type to search..." value={query} onChange={(event: React.ChangeEvent<HTMLInputElement>) => model.setQuery(event.target.value)} />}
 								</div>
 								{isAgent(section) && <div className="host-toolbar">
