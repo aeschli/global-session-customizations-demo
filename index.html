@@ -836,7 +836,7 @@
 											: 'Example data only; this does not read your account, organization, or team memberships.'}</p>
 									{visibleSourceGroups.length === 0 ? <div className="empty">No matching sources.</div> : visibleSourceGroups.map(group =>
 										<section className="synced-group" key={group.name} aria-label={group.name}>
-											<h2>{group.name}</h2><p>{group.description}</p>
+											{section !== 'Built-In' && <><h2>{group.name}</h2><p>{group.description}</p></>}
 											<table><thead><tr><th>Name</th><th>{group.column}</th>{group.items.some(item => item.enabled !== undefined) && <th className="item-action">Enabled</th>}</tr></thead>
 												<tbody>{group.items.map(item => <tr key={item.name}><td>{item.name}<small>{item.description}</small></td><td>{item.source}</td>
 													{item.enabled !== undefined && <td className="item-action"><button className="switch" role="switch" aria-label={`${item.name}: VS Code built-in skill`} aria-checked={item.enabled} onClick={() => model.toggle(item)}><span /></button></td>}
