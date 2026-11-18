@@ -5,7 +5,7 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<meta name="vscode-app-id" content="prototype.global-session-customizations" />
-	<title>Global and session customizations</title>
+	<title>Agent Window Configuration</title>
 	<style id="prototype-styles">
 		html, body { margin: 0; height: 100%; }
 		.app-root {
@@ -751,8 +751,8 @@
 							if (event.key === 'ArrowDown') { event.preventDefault(); openDemoMenuFrom(event.currentTarget); }
 						}}>Demo Options <Icon kind="chevron" /></button>
 				</div>
-				<section className="window" aria-label="Customizations prototype">
-					<header className="titlebar"><strong>Customizations</strong><span className="muted">Interactive mockup</span></header>
+				<section className="window" aria-label="Agent Window Configuration">
+					<header className="titlebar"><strong>Agent Window Configuration</strong><span className="muted">Interactive mockup</span></header>
 					<div className="body">
 						<aside className="sidebar" aria-label="Customization navigation" onContextMenu={onSidebarContextMenu}
 							onMouseDown={(event: React.MouseEvent<HTMLElement>) => {
