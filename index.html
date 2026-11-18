@@ -158,7 +158,7 @@
 
 		const agents = ['Copilot', 'Claude', 'Codex'] as const;
 		type Agent = typeof agents[number];
-		type GlobalSection = 'Settings' | Agent | 'Synced' | 'Remotes' | 'VS Code Extensions';
+		type GlobalSection = 'Settings' | Agent | 'Synced' | 'Organization & Team' | 'Remotes' | 'VS Code Extensions';
 		type SessionSection = 'Plugins' | 'Canvases' | 'MCP Servers' | 'Skills' | 'Instructions' | 'Agents' | 'Hooks' | 'Tools';
 		type Section = GlobalSection | SessionSection;
 		interface Session { readonly id: string; readonly name: string; readonly project: string; readonly host: string; readonly agent: string; }
@@ -214,7 +214,7 @@
 			{ id: 'sessions.sendLater.enabled', label: 'Send later', description: 'Schedule requests for later. Requires Automations and a supported local agent host. Turning this off does not cancel scheduled requests.', group: 'More', kind: 'boolean', defaultValue: true },
 		];
 		const settingsGroups: readonly SettingsGroup[] = ['Window and layout', 'Sessions list', 'Navigation and workspaces', 'More'];
-		const globalSections: readonly GlobalSection[] = ['Settings', 'Remotes', 'VS Code Extensions', ...agents, 'Synced'];
+		const globalSections: readonly GlobalSection[] = ['Settings', 'Remotes', 'VS Code Extensions', ...agents, 'Synced', 'Organization & Team'];
 		function isAgent(section: Section): section is Agent {
 			return agents.some(agent => agent === section);
 		}
@@ -242,6 +242,7 @@
 			Claude: 'Manage Claude customizations on the selected agent host.',
 			Codex: 'Manage Codex customizations on the selected agent host.',
 			Synced: 'VS Code skills, extensions, and plugins synced from this computer.',
+			'Organization & Team': 'Customizations configured by your organization and the teams you belong to.',
 			Remotes: 'Computers available for running your sessions.',
 			'VS Code Extensions': 'Manage extensions installed in this application.',
 			Plugins: 'Bundles of skills, connections, agents and hooks.',
@@ -298,9 +299,39 @@
 				].map(item => ({ ...item, enabled: true })),
 			},
 		];
+		const organizationGroups: typeof syncedGroups = [
+			{
+				name: 'Organization · Northstar',
+				description: 'Customizations shared across the organization.',
+				column: 'Type',
+				items: [
+					{ name: 'Secure coding guidelines', source: 'Instruction', description: 'Organization-wide development guidance.' },
+					{ name: 'Company knowledge', source: 'MCP server', description: 'Connect to shared documentation.' },
+				],
+			},
+			{
+				name: 'Team · Platform Engineering',
+				description: 'Customizations shared with the Platform Engineering team.',
+				column: 'Type',
+				items: [
+					{ name: 'Service conventions', source: 'Instruction', description: 'Guidance for platform services.' },
+					{ name: 'Deployment review', source: 'Skill', description: 'Review a deployment for readiness.' },
+				],
+			},
+			{
+				name: 'Team · Security',
+				description: 'Customizations shared with the Security team.',
+				column: 'Type',
+				items: [
+					{ name: 'Security review', source: 'Agent', description: 'Review changes for security concerns.' },
+					{ name: 'Security toolkit', source: 'Plugin', description: 'Shared security review capabilities.' },
+				],
+			},
+		];
 		const globalItems: Record<Exclude<GlobalSection, Agent>, readonly SourceItem[]> = {
 			Settings: [],
 			Synced: syncedGroups.flatMap(group => group.items),
+			'Organization & Team': organizationGroups.flatMap(group => group.items),
 			Remotes: agentHosts.map(host => ({ name: host.name, source: host.source, description: host.detail })),
 			'VS Code Extensions': [
 				{ name: 'GitHub Copilot', source: 'GitHub', description: 'AI assistance and agent workflows.', enabled: true },
@@ -357,7 +388,7 @@
 			return `${item.name} ${item.description} ${item.source ?? ''} ${item.type ?? ''}`.toLowerCase().includes(query.trim().toLowerCase());
 		}
 		function itemsFor(section: Section, session: Session | undefined): readonly Item[] {
-			if (section === 'Settings' || section === 'Synced' || section === 'Remotes' || section === 'VS Code Extensions') {
+			if (section === 'Settings' || section === 'Synced' || section === 'Organization & Team' || section === 'Remotes' || section === 'VS Code Extensions') {
 				return globalItems[section];
 			}
 			if (!session) { return []; }
@@ -435,11 +466,13 @@
 			readonly message: IObservable<string> = this._message;
 			readonly session: IObservable<Session | undefined> = derived(this, reader => sessions.find(s => s.id === this._sessionId.read(reader)));
 			readonly isGlobal: IObservable<boolean> = derived(this, reader => globalSections.includes(this._section.read(reader) as GlobalSection));
-			readonly visibleSyncedGroups: IObservable<typeof syncedGroups> = derived(this, reader => {
+			readonly visibleSourceGroups: IObservable<typeof syncedGroups> = derived(this, reader => {
 				const query = this._query.read(reader).trim().toLowerCase();
 				const overrides = this._overrides.read(reader);
-				const scope = this.itemScope('Synced', this._host.read(reader), this.session.read(reader));
-				return syncedGroups.map(group => ({
+				const section = this._section.read(reader);
+				const scope = this.itemScope(section, this._host.read(reader), this.session.read(reader));
+				const groups = section === 'Organization & Team' ? organizationGroups : syncedGroups;
+				return groups.map(group => ({
 					...group,
 					items: (`${group.name} ${group.searchTerms ?? ''}`.toLowerCase().includes(query)
 						? group.items : group.items.filter(item => matchesItem(item, query)))
@@ -612,7 +645,7 @@
 			const installed = model.installed.read(reader);
 			const items = browseAgent ? catalog[browseAgent].filter(item => matchesItem(item, query)) : model.items.read(reader);
 			const showActionColumn = !!browseAgent || isAgent(section) || section === 'Remotes' || items.some(item => item.enabled !== undefined);
-			const visibleSyncedGroups = model.visibleSyncedGroups.read(reader);
+			const visibleSourceGroups = model.visibleSourceGroups.read(reader);
 			const visibleSettings = model.visibleSettings.read(reader);
 			const pickerOpen = model.pickerOpen.read(reader);
 			const pickerItems = model.pickerItems.read(reader);
@@ -698,7 +731,7 @@
 				onClick={() => model.selectSection(name)}>
 				<Icon kind={name === 'Settings' ? 'settings' : name === 'Remotes' ? 'computer' : name === 'Copilot' ? 'copilot' : 'item'} />
 				<span className="nav-label">{name}</span>
-				{!isAgent(name) && name !== 'Synced' && <span className="count">{itemsFor(name, session).length || ''}</span>}
+				{!isAgent(name) && name !== 'Synced' && name !== 'Organization & Team' && <span className="count">{itemsFor(name, session).length || ''}</span>}
 			</button>;
 			return <main className="app-root" onPointerDownCapture={(event: React.PointerEvent<HTMLElement>) => {
 				if (demoMenuPosition && event.target instanceof Node
@@ -733,6 +766,7 @@
 									<h3 className="group-title">Customizations</h3>
 									{agents.map(renderNav)}
 									{renderNav('Synced')}
+									{renderNav('Organization & Team')}
 								</div>
 							</nav>
 							{sessionSectionVisible && <section className="session-group" aria-labelledby="session-heading">
@@ -791,9 +825,11 @@
 									})}
 									</>}
 									<p className="scope-note">Example values only. Changes stay in this preview and do not modify real settings.</p>
-								</> : section === 'Synced' ? <>
-									<p className="muted">Preview data only; this does not read your installed extensions, built-in skills, or settings.</p>
-									{visibleSyncedGroups.length === 0 ? <div className="empty">No matching sources.</div> : visibleSyncedGroups.map(group =>
+								</> : section === 'Synced' || section === 'Organization & Team' ? <>
+									<p className="muted">{section === 'Synced'
+										? 'Preview data only; this does not read your installed extensions, built-in skills, or settings.'
+										: 'Example data only; this does not read your account, organization, or team memberships.'}</p>
+									{visibleSourceGroups.length === 0 ? <div className="empty">No matching sources.</div> : visibleSourceGroups.map(group =>
 										<section className="synced-group" key={group.name} aria-label={group.name}>
 											<h2>{group.name}</h2><p>{group.description}</p>
 											<table><thead><tr><th>Name</th><th>{group.column}</th>{group.items.some(item => item.enabled !== undefined) && <th className="item-action">Enabled</th>}</tr></thead>
@@ -888,6 +924,7 @@
 					CustomizationTypes: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Copilot'), Dark: fixture('dark', 'dialog', 'Copilot') }),
 					Browse: fixture('light', 'dialog', 'Claude', agentHosts[2], true),
 					Synced: fixture('dark', 'dialog', 'Synced'),
+					OrganizationTeam: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Organization & Team'), Dark: fixture('dark', 'dialog', 'Organization & Team') }),
 					Settings: defineFixtureVariants({ Light: fixture('light', 'dialog', 'Settings'), Dark: fixture('dark', 'dialog', 'Settings') }),
 					NoSession: fixture('light', '', 'Plugins'),
 					Empty: fixture('light', 'remote', 'Canvases'),
